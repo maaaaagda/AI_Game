@@ -71,23 +71,25 @@ class GUI:
         #self.update()
 
     def initGameWithMode(self, mode=MODE):
-        for x, y in self.board.fields:
-            if mode == 1:
-                modeHandler = lambda x=x, y=y: self.moveHumanHuman(x, y)
-            elif mode == 2:
-                modeHandler = lambda x=x, y=y: self.moveHumanComp(x, y)
-            else:
-                modeHandler = lambda x=x, y=y: self.moveCompComp(self.board.fieldsNr)
-            handler = modeHandler
-            buttonSize =  int(BOARD_SIZE/self.board.size)
-            f = Frame(self.frameBoard, height=buttonSize, width=buttonSize)
-            f.pack_propagate(0)  # don't shrink f.pack()
-            #
-            button = Button(f)
-            button.pack(fill=BOTH, expand=1)
-            # button = Button(self.frameBoard, command=handler)
-            f.grid(row=y, column=x)
-            self.buttons[x, y] = f
+        gameSize = self.board.fields.shape[0]
+        for x in range (gameSize):
+            for y in range (gameSize):
+                if mode == 1:
+                    modeHandler = lambda x=x, y=y: self.moveHumanHuman(x, y)
+                elif mode == 2:
+                    modeHandler = lambda x=x, y=y: self.moveHumanComp(x, y)
+                else:
+                    modeHandler = lambda x=x, y=y: self.moveCompComp(self.board.fieldsNr)
+                handler = modeHandler
+                buttonSize =  int(BOARD_SIZE/self.board.size)
+                f = Frame(self.frameBoard, height=buttonSize, width=buttonSize)
+                f.pack_propagate(0)  # don't shrink f.pack()
+                #
+                button = Button(f)
+                button.pack(fill=BOTH, expand=1)
+                # button = Button(self.frameBoard, command=handler)
+                f.grid(row=y, column=x)
+                self.buttons[x, y] = f
         if mode == 3:
             self.moveCompComp(self.board.fieldsNr)
 

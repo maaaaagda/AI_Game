@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 if sys.version_info >= (3, 0):
   from tkinter import *
 else:
@@ -8,15 +9,15 @@ from GUI import *
 class Board:
   
   def __init__(self,other=None):
-    self.player = 'O'
-    self.opponent = 'X'
-    self.empty = ''
+    self.player = 1
+    self.opponent = -1
+    self.empty = 0
     self.size = 4
     self.fieldsNr = self.size*self.size
-    self.fields = {}
-    for y in range(self.size):
-      for x in range(self.size):
-        self.fields[x,y] = self.empty
+    self.fields = np.zeros((self.size, self.size), dtype=int)
+    # for y in range(self.size):
+    #   for x in range(self.size):
+    #     self.fields[x,y] = self.empty
     # copy constructor
     if other:
       self.__dict__ = deepcopy(other.__dict__)
@@ -75,36 +76,36 @@ class Board:
   def won(self):
     # horizontal
     for y in range(self.size):
-      winning = []
+      winningLen = 0
       for x in range(self.size):
         if self.fields[x,y] == self.opponent:
-          winning.append((x,y))
-      if len(winning) == self.size:
-        return winning
+          winningLen +=1
+      if winningLen == self.size:
+        return winningLen
     # vertical
     for x in range(self.size):
-      winning = []
+      winningLen
       for y in range(self.size):
         if self.fields[x,y] == self.opponent:
-          winning.append((x,y))
-      if len(winning) == self.size:
-        return winning
+          winningLen += 1
+      if winningLen  == self.size:
+        return winningLen
     # diagonal
-    winning = []
+    winningLen = 0
     for y in range(self.size):
       x = y
       if self.fields[x,y] == self.opponent:
-        winning.append((x,y))
-    if len(winning) == self.size:
-      return winning
+        winningLen
+    if winningLen  == self.size:
+      return winningLen
     # other diagonal
-    winning = []
+    winningLen = 0
     for y in range(self.size):
       x = self.size-1-y
       if self.fields[x,y] == self.opponent:
-        winning.append((x,y))
-    if len(winning) == self.size:
-      return winning
+        winningLen += 1
+    if winningLen == self.size:
+      return winningLen
     # default
     return None
   
