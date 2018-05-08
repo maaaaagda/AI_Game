@@ -15,20 +15,17 @@ class Board:
     self.size = 4
     self.fieldsNr = self.size*self.size
     self.fields = np.zeros((self.size, self.size), dtype=int)
-    # for y in range(self.size):
-    #   for x in range(self.size):
-    #     self.fields[x,y] = self.empty
-    # copy constructor
     if other:
       self.__dict__ = deepcopy(other.__dict__)
-      
+
   def move(self,x,y):
     board = Board(self)
-    board.fields[x,y] = board.player
+    board.fields[x][y] = board.player
     (board.player,board.opponent) = (board.opponent,board.player)
     return board
   
   def __minimax(self, player, depth):
+    gameSize=self.size
     if self.won():
       if player:
         return (-1,None)
@@ -39,22 +36,24 @@ class Board:
     elif player:        # kiedy jaa
       best = (-2, None)
       if (depth != 0):
-          for x,y in self.fields:
-            if self.fields[x,y]==self.empty:
-              value = self.move(x,y).__minimax(not player, depth - 1)[0]
-              if value>best[0]:
-                best = (value,(x,y))
+          for x in range(gameSize):
+              for y in range(gameSize):
+                if self.fields[x][y]==self.empty:
+                  value = self.move(x,y).__minimax(not player, depth - 1)[0]
+                  if value>best[0]:
+                    best = (value,(x,y))
       if best[1] == None:
           best = (best[0], self.findEmpty())
       return best
     else:           # kiedy przeciwnik
       best = (+2, None)
       if (depth != 0):
-          for x,y in self.fields:
-            if self.fields[x,y]==self.empty:
-              value = self.move(x,y).__minimax(not player, depth - 1)[0]
-              if value<best[0]:
-                best = (value,(x,y))
+          for x in range(gameSize):
+              for y in range(gameSize):
+                if self.fields[x][y]==self.empty:
+                  value = self.move(x,y).__minimax(not player, depth - 1)[0]
+                  if value<best[0]:
+                    best = (value,(x,y))
       if best[1] == None:
           best = (best[0], self.findEmpty())
       return best
@@ -63,49 +62,53 @@ class Board:
     return self.__minimax(True, depth)[1]
   
   def tied(self):
-    for (x,y) in self.fields:
-      if self.fields[x,y]==self.empty:
-        return False
-    return True
+      gameSize = self.size
+      for x in range(gameSize):
+          for y in range(gameSize):
+            if self.fields[x][y]==self.empty:
+                return False
+      return True
 
   def findEmpty(self):
-      for x, y in self.fields:
-          if self.fields[x, y] == self.empty:
-              return (x, y)
+      gameSize = self.size
+      for x in range(gameSize):
+          for y in range(gameSize):
+              if self.fields[x, y] == self.empty:
+                  return (x, y)
       return None
   def won(self):
     # horizontal
     for y in range(self.size):
-      winningLen = 0
+      winning = []
       for x in range(self.size):
         if self.fields[x,y] == self.opponent:
-          winningLen +=1
-      if winningLen == self.size:
-        return winningLen
+          winning.append((x, y))
+      if len(winning) == self.size:
+        return winning
     # vertical
     for x in range(self.size):
-      winningLen
+      winning = []
       for y in range(self.size):
         if self.fields[x,y] == self.opponent:
-          winningLen += 1
-      if winningLen  == self.size:
-        return winningLen
+          winning.append((x, y))
+      if len(winning)  == self.size:
+        return winning
     # diagonal
-    winningLen = 0
+    winning = []
     for y in range(self.size):
       x = y
       if self.fields[x,y] == self.opponent:
-        winningLen
-    if winningLen  == self.size:
-      return winningLen
+        winning.append((x, y))
+        if len(winning)  == self.size:
+          return winning
     # other diagonal
-    winningLen = 0
+    winning = []
     for y in range(self.size):
       x = self.size-1-y
       if self.fields[x,y] == self.opponent:
-        winningLen += 1
-    if winningLen == self.size:
-      return winningLen
+        winning.append((x, y))
+    if len(winning) == self.size:
+      return winning
     # default
     return None
   

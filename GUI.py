@@ -33,6 +33,14 @@ class Scalebar(Frame):
               orient=HORIZONTAL)
         scale.pack(expand=1, fill=X, pady=10, padx=5)
 
+class ButtonField(Frame):
+    def __init__(self, parent, width, height, command):
+        Frame.__init__(self, parent, width=width, height=height)
+        self.pack_propagate(0)
+        self.button = Button(self, command=command)
+        self.button.pack(fill=BOTH, expand=1)
+
+
 class GUI:
     def __init__(self):
         self.app = Tk()
@@ -68,10 +76,10 @@ class GUI:
         scalebar = Scalebar(self.frameSettings)
         scalebar.grid(row=2, columnspan=2, sticky="WE", padx=20, pady=20)
         self.initGameWithMode(MODE)
-        #self.update()
+        self.update()
 
     def initGameWithMode(self, mode=MODE):
-        gameSize = self.board.fields.shape[0]
+        gameSize = self.board.size
         for x in range (gameSize):
             for y in range (gameSize):
                 if mode == 1:
@@ -82,11 +90,12 @@ class GUI:
                     modeHandler = lambda x=x, y=y: self.moveCompComp(self.board.fieldsNr)
                 handler = modeHandler
                 buttonSize =  int(BOARD_SIZE/self.board.size)
-                f = Frame(self.frameBoard, height=buttonSize, width=buttonSize)
-                f.pack_propagate(0)  # don't shrink f.pack()
-                #
-                button = Button(f)
-                button.pack(fill=BOTH, expand=1)
+                # f = Frame(self.frameBoard, height=buttonSize, width=buttonSize)
+                # f.pack_propagate(0)  # don't shrink f.pack()
+                # #
+                # button = Button(f)
+                # button.pack(fill=BOTH, expand=1)
+                f = ButtonField(self.frameBoard, buttonSize, buttonSize, handler)
                 # button = Button(self.frameBoard, command=handler)
                 f.grid(row=y, column=x)
                 self.buttons[x, y] = f
@@ -126,22 +135,30 @@ class GUI:
         self.app.config(cursor="")
 
     def update(self):
-        for (x, y) in self.board.fields:
-            text = self.board.fields[x, y]
-            self.buttons[x, y]['text'] = text
-            self.buttons[x, y]['disabledforeground'] = 'black'
-            if text == self.board.empty:
-                self.buttons[x, y]['state'] = 'normal'
-            else:
-                self.buttons[x, y]['state'] = 'disabled'
-        winning = self.board.won()
-        if winning:
-            for x, y in winning:
-                self.buttons[x, y]['disabledforeground'] = 'red'
-            for x, y in self.buttons:
-                self.buttons[x, y]['state'] = 'disabled'
-        for (x, y) in self.board.fields:
-            self.buttons[x, y].update()
+        gameSize = self.board.size
+        for x in range(gameSize):
+            for y in range(gameSize):
+                boardField = self.board.fields[x][y]
+                if boardField == 1:
+                    self.buttons[x, y].button.configure(bg='Blue')
+                elif boardField == -1:
+                    self.buttons[x, y].button.configure(bg='Pink')
+                #self.buttons[x, y]['text'] = text
+                #self.buttons[x, y]['disabledforeground'] = 'black'
+                if boardField == self.board.empty:
+                    self.buttons[x, y].button['state'] = 'normal'
+                else:
+                    self.buttons[x, y].button['state'] = 'disabled'
+            winning = self.board.won()
+            if winning:
+                for x, y in winning:
+                    self.buttons[x, y].button.configure(bg='White')
+                for x in range(gameSize):
+                    for y in range(gameSize):
+                        self.buttons[x, y].button['state'] = 'disabled'
+            for x in range(gameSize):
+                for y in range(gameSize):
+                    self.buttons[x, y].button.update()
 
     def mainloop(self):
         self.app.mainloop()
