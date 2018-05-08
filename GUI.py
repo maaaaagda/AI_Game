@@ -1,9 +1,10 @@
 from tkinter import *
-from tkinter.font import Font
+import numpy as np
 from Board import Board
 import types
 MODE = 1
 BOARD_SIZE = 500
+GAME_SIZE = 5
 
 class Radiobar(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W, ref=NONE):
@@ -17,7 +18,6 @@ class Radiobar(Frame):
             rad = Radiobutton(self, text=pick[0], value=pick[1], variable=self.var, command=self.changeMode)
             rad.pack(anchor=anchor, expand=YES)
 
-
     def state(self):
         return self.var.get()
 
@@ -27,11 +27,19 @@ class Radiobar(Frame):
         self.resetOptions()
 
 class Scalebar(Frame):
-    def __init__(self, parent = NONE):
+    def __init__(self, parent=None):
         Frame.__init__(self, parent)
+        self.var = IntVar()
         scale = Scale(self, from_=3, to=100, label='Rozmiar planszy',
-              orient=HORIZONTAL)
+                      orient=HORIZONTAL, command=self.changeBoardSize, variable=self.var)
         scale.pack(expand=1, fill=X, pady=10, padx=5)
+
+    def changeBoardSize(self, *args):
+        global GAME_SIZE
+        GAME_SIZE = self.var.get()
+
+    def setScaleValue(self, value):
+        self.var.set(value)
 
 class ButtonField(Frame):
     def __init__(self, parent, width, height, command):
@@ -48,7 +56,14 @@ class GUI:
         self.app.resizable(width=False, height=False)
         self.app.geometry('1000x500')
         self.board = Board()
-        self.font = Font(family="Helvetica", size=32)
+        self.changeGameSize()
+        self.initGameWithMode(MODE)
+        self.update()
+
+    def changeGameSize(self):
+        self.board.size = GAME_SIZE
+        self.board.fieldsNr = self.board.size * self.board.size
+        self.board.fields = np.zeros((self.board.size, self.board.size), dtype=int)
         self.buttons = {}
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
@@ -59,9 +74,6 @@ class GUI:
         self.frameBoard.grid(row=0, column=0, sticky="nsew")
         self.frameSettings.grid(row=0, column=1, sticky="nsew")
         self.frameBoard.grid_propagate(False)
-
-        # self.frameBoard.grid_columnconfigure(0, weight=1)
-        # self.frameBoard.grid_rowconfigure(1, weight=1)
 
         self.frameSettings.grid_propagate(False)
         self.frameSettings.grid_columnconfigure(0, weight=1)
@@ -74,9 +86,8 @@ class GUI:
         radiobar = Radiobar(self.frameSettings, radioOptions, labelText='Tryb gry', ref=self)
         radiobar.grid(row=0, column=0, sticky="WE", padx=20, pady=20)
         scalebar = Scalebar(self.frameSettings)
+        scalebar.setScaleValue(GAME_SIZE)
         scalebar.grid(row=2, columnspan=2, sticky="WE", padx=20, pady=20)
-        self.initGameWithMode(MODE)
-        self.update()
 
     def initGameWithMode(self, mode=MODE):
         gameSize = self.board.size
@@ -90,13 +101,7 @@ class GUI:
                     modeHandler = lambda x=x, y=y: self.moveCompComp(self.board.fieldsNr)
                 handler = modeHandler
                 buttonSize =  int(BOARD_SIZE/self.board.size)
-                # f = Frame(self.frameBoard, height=buttonSize, width=buttonSize)
-                # f.pack_propagate(0)  # don't shrink f.pack()
-                # #
-                # button = Button(f)
-                # button.pack(fill=BOTH, expand=1)
                 f = ButtonField(self.frameBoard, buttonSize, buttonSize, handler)
-                # button = Button(self.frameBoard, command=handler)
                 f.grid(row=y, column=x)
                 self.buttons[x, y] = f
         if mode == 3:
@@ -104,6 +109,7 @@ class GUI:
 
     def reset(self):
         self.board = Board()
+        self.changeGameSize()
         self.initGameWithMode(MODE)
         self.update()
 
@@ -143,8 +149,6 @@ class GUI:
                     self.buttons[x, y].button.configure(bg='Blue')
                 elif boardField == -1:
                     self.buttons[x, y].button.configure(bg='Pink')
-                #self.buttons[x, y]['text'] = text
-                #self.buttons[x, y]['disabledforeground'] = 'black'
                 if boardField == self.board.empty:
                     self.buttons[x, y].button['state'] = 'normal'
                 else:
