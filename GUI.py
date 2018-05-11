@@ -2,9 +2,10 @@ from tkinter import *
 import numpy as np
 from Board import Board
 import types
+
 MODE = 1
 BOARD_SIZE = 500
-GAME_SIZE = 5
+GAME_SIZE = 4
 
 class Radiobar(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W, ref=NONE):
@@ -30,7 +31,7 @@ class Scalebar(Frame):
     def __init__(self, parent=None):
         Frame.__init__(self, parent)
         self.var = IntVar()
-        scale = Scale(self, from_=3, to=100, label='Rozmiar planszy',
+        scale = Scale(self, from_=3, to=50, label='Rozmiar planszy',
                       orient=HORIZONTAL, command=self.changeBoardSize, variable=self.var)
         scale.pack(expand=1, fill=X, pady=10, padx=5)
 
@@ -64,7 +65,7 @@ class GUI:
         self.board.size = GAME_SIZE
         self.board.fieldsNr = self.board.size * self.board.size
         self.board.fields = np.zeros((self.board.size, self.board.size), dtype=int)
-        self.buttons = {}
+        self.buttons = np.zeros((GAME_SIZE, GAME_SIZE), dtype=object)
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
 
@@ -102,8 +103,8 @@ class GUI:
                 handler = modeHandler
                 buttonSize =  int(BOARD_SIZE/self.board.size)
                 f = ButtonField(self.frameBoard, buttonSize, buttonSize, handler)
-                f.grid(row=y, column=x)
-                self.buttons[x, y] = f
+                f.grid(row=x, column=y)
+                self.buttons[x][y] = f
         if mode == 3:
             self.moveCompComp(self.board.fieldsNr)
 
@@ -121,7 +122,7 @@ class GUI:
         self.app.config(cursor="")
 
     def moveCompComp(self, fieldsNr):
-        move = self.board.best(3)
+        move = self.board.best(self.board.depth)
         if move:
             self.board = self.board.move(*move)
             self.update()
@@ -134,7 +135,8 @@ class GUI:
         self.app.update()
         self.board = self.board.move(x, y)
         self.update()
-        move = self.board.best(3)
+        move = self.board.bestwithpruning(self.board.depth)
+        #move = self.board.best(self.board.depth)
         if move:
             self.board = self.board.move(*move)
             self.update()
@@ -146,23 +148,23 @@ class GUI:
             for y in range(gameSize):
                 boardField = self.board.fields[x][y]
                 if boardField == 1:
-                    self.buttons[x, y].button.configure(bg='Blue')
+                    self.buttons[x][y].button.configure(bg='Blue')
                 elif boardField == -1:
-                    self.buttons[x, y].button.configure(bg='Pink')
+                    self.buttons[x][y].button.configure(bg='Pink')
                 if boardField == self.board.empty:
-                    self.buttons[x, y].button['state'] = 'normal'
+                    self.buttons[x][y].button['state'] = 'normal'
                 else:
-                    self.buttons[x, y].button['state'] = 'disabled'
+                    self.buttons[x][y].button['state'] = 'disabled'
             winning = self.board.won()
             if winning:
                 for x, y in winning:
-                    self.buttons[x, y].button.configure(bg='White')
+                    self.buttons[x][y].button.configure(bg='purple')
                 for x in range(gameSize):
                     for y in range(gameSize):
-                        self.buttons[x, y].button['state'] = 'disabled'
+                        self.buttons[x][y].button['state'] = 'disabled'
             for x in range(gameSize):
                 for y in range(gameSize):
-                    self.buttons[x, y].button.update()
+                    self.buttons[x][y].button.update()
 
     def mainloop(self):
         self.app.mainloop()
