@@ -57,6 +57,8 @@ class GUI:
         self.app.resizable(width=False, height=False)
         self.app.geometry('1000x500')
         self.board = Board()
+        self.myPoints = 0
+        self.opponentPoints = 0
         self.changeGameSize()
         self.initGameWithMode(MODE)
         self.update()
@@ -112,6 +114,8 @@ class GUI:
         self.board = Board()
         self.changeGameSize()
         self.initGameWithMode(MODE)
+        self.myPoints = 0
+        self.opponentPoints = 0
         self.update()
 
     def moveHumanHuman(self, x, y):
@@ -134,11 +138,15 @@ class GUI:
         self.app.config(cursor="watch")
         self.app.update()
         self.board = self.board.move(x, y)
+        self.myPoints += self.board.countPoints((x, y))
+        print('ja:', self.myPoints, ' komp:', self.opponentPoints)
         self.update()
         move = self.board.bestwithpruning(self.board.depth)
         #move = self.board.best(self.board.depth)
         if move:
             self.board = self.board.move(*move)
+            self.opponentPoints +=  self.board.countPoints((x, y))
+            print('ja:', self.myPoints, ' komp:', self.opponentPoints)
             self.update()
         self.app.config(cursor="")
 
@@ -155,16 +163,16 @@ class GUI:
                     self.buttons[x][y].button['state'] = 'normal'
                 else:
                     self.buttons[x][y].button['state'] = 'disabled'
-            winning = self.board.won()
-            if winning:
-                for x, y in winning:
-                    self.buttons[x][y].button.configure(bg='purple')
-                for x in range(gameSize):
-                    for y in range(gameSize):
-                        self.buttons[x][y].button['state'] = 'disabled'
-            for x in range(gameSize):
-                for y in range(gameSize):
-                    self.buttons[x][y].button.update()
+            # winning = self.board.won()
+            # if winning:
+            #     for x, y in winning:
+            #         self.buttons[x][y].button.configure(bg='purple')
+            #     for x in range(gameSize):
+            #         for y in range(gameSize):
+            #             self.buttons[x][y].button['state'] = 'disabled'
+            # for x in range(gameSize):
+            #     for y in range(gameSize):
+            #         self.buttons[x][y].button.update()
 
     def mainloop(self):
         self.app.mainloop()
