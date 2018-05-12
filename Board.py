@@ -175,21 +175,24 @@ class Board:
 
       x1 = x
       y1 = y
-      diagonalPoints = 0
       corners =  x1 == 0 and y1 == 0 or x1 == gameSize-1 and y1 == gameSize-1 or x1 == 0 and y1 == gameSize -1 or x1 == gameSize -1 and y1 == 0
+      # print(self.fields)
+      # print(move)
+      points += (0 if gameSize-np.count_nonzero(self.fields[x][:]) != 0 else gameSize)
+      points += (0 if gameSize-np.count_nonzero(self.fields[:, y]) != 0 else gameSize)
+      # print(points)
+      diagonalPoints = 0
+      while x1 + 1 < gameSize and y1 + 1 < gameSize:
+          if (self.fields[x1 + 1][y1 + 1] == 0):
+              diagonalPoints = 0
+              break
+          else:
+              diagonalPoints += 1
+              x1 += 1
+              y1 += 1
 
-      if not corners:
-          points += (0 if gameSize-np.count_nonzero(self.fields[x][:]) != 0 else gameSize)
-          points += (0 if gameSize-np.count_nonzero(self.fields[:][y]) != 0 else gameSize)
-
-          while x1 + 1 < gameSize and y1 + 1 < gameSize:
-              if (self.fields[x1 + 1][y1 + 1] == 0):
-                  diagonalPoints = 0
-                  break
-              else:
-                  diagonalPoints += 1
-                  x1 += 1
-                  y1 += 1
+      # print('++', diagonalPoints)
+      if(diagonalPoints != 0 or x == gameSize-1 or y == gameSize -1):
           x1 = x
           y1 = y
           while x1 - 1 >= 0 and y1 - 1 >= 0:
@@ -201,19 +204,23 @@ class Board:
                   x1 -= 1
                   y1 -= 1
 
-          points += diagonalPoints + 1 if diagonalPoints != 0 else 0
+      # print('--', diagonalPoints)
+      points += diagonalPoints + 1 if diagonalPoints != 0 else 0
+      # print(points)
 
-          x1 = x
-          y1 = y
-          diagonalPoints = 0
-          while x1 + 1 < gameSize and y1 - 1 >= 0:
-              if (self.fields[x1 + 1][y1 - 1] == 0):
-                  diagonalPoints = 0
-                  break
-              else:
-                  diagonalPoints += 1
-                  x1 += 1
-                  y1 -= 1
+      x1 = x
+      y1 = y
+      diagonalPoints = 0
+      while x1 + 1 < gameSize and y1 - 1 >= 0:
+          if (self.fields[x1 + 1][y1 - 1] == 0):
+              diagonalPoints = 0
+              break
+          else:
+              diagonalPoints += 1
+              x1 += 1
+              y1 -= 1
+      # print('+-', diagonalPoints)
+      if (diagonalPoints != 0 or y == 0 or x == gameSize -1):
           x1 = x
           y1 = y
           while x1 - 1 >= 0 and y1 + 1 < gameSize:
@@ -225,8 +232,9 @@ class Board:
                   x1 -= 1
                   y1 += 1
 
-          points += diagonalPoints + 1 if diagonalPoints != 0 else 0
-
+      # print('-+', diagonalPoints)
+      points += diagonalPoints + 1 if diagonalPoints != 0 else 0
+      # print(points)
       return points
 
 if __name__ == '__main__':

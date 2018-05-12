@@ -8,11 +8,10 @@ BOARD_SIZE = 500
 GAME_SIZE = 4
 
 class Radiobar(Frame):
-    def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W, ref=NONE):
+    def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
         Frame.__init__(self, parent)
-        self.resetOptions = types.MethodType(ref.reset.__func__, ref)
         self.var = IntVar()
-        self.var.set(picks[0][1])
+        self.var.set(MODE)
         label = Label(self, text=labelText)
         label.pack(fill=fill, anchor=anchor, expand=YES)
         for pick in picks:
@@ -25,7 +24,6 @@ class Radiobar(Frame):
     def changeMode(self):
         global MODE
         MODE = self.var.get()
-        self.resetOptions()
 
 class Scalebar(Frame):
     def __init__(self, parent=None):
@@ -71,7 +69,7 @@ class GUI:
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
 
-        self.frameBoard = Frame(self.app, background="Blue", width=BOARD_SIZE, height=BOARD_SIZE)
+        self.frameBoard = Frame(self.app, width=BOARD_SIZE, height=BOARD_SIZE)
         self.frameSettings = Frame(self.app, width=BOARD_SIZE, height=BOARD_SIZE)
 
         self.frameBoard.grid(row=0, column=0, sticky="nsew")
@@ -86,11 +84,22 @@ class GUI:
         button.grid(row=0, column=1, sticky="WE", padx=20, pady=20)
 
         radioOptions = [('Człowiek - Człowiek', 1), ('Człowiek  - Komputer', 2), ('Komputer - Komputer', 3)]
-        radiobar = Radiobar(self.frameSettings, radioOptions, labelText='Tryb gry', ref=self)
+        radiobar = Radiobar(self.frameSettings, radioOptions, labelText='Tryb gry')
         radiobar.grid(row=0, column=0, sticky="WE", padx=20, pady=20)
         scalebar = Scalebar(self.frameSettings)
         scalebar.setScaleValue(GAME_SIZE)
         scalebar.grid(row=2, columnspan=2, sticky="WE", padx=20, pady=20)
+
+        resultsLabel = Label(self.frameSettings, text="Wynik gry dla graczy", font=("Helvetica", 16))
+        humanScoreLabel = Label(self.frameSettings, text="Człowiek: ")
+        computerScoreLabel = Label(self.frameSettings, text="Komputer: ")
+        self.humanScore = Label(self.frameSettings, text="0")
+        self.computerScore = Label(self.frameSettings, text="0")
+        resultsLabel.grid(row=3, columnspan=2, padx=20, pady=20)
+        humanScoreLabel.grid(row=4, column=0, padx=20, pady=20)
+        computerScoreLabel.grid(row=4, column=1, padx=20, pady=20)
+        self.humanScore.grid(row=5, column=0, padx=20, pady=20)
+        self.computerScore.grid(row=5, column=1, padx=20, pady=20)
 
     def initGameWithMode(self, mode=MODE):
         gameSize = self.board.size
@@ -145,10 +154,13 @@ class GUI:
         #move = self.board.best(self.board.depth)
         if move:
             self.board = self.board.move(*move)
-            self.opponentPoints +=  self.board.countPoints((x, y))
+            self.opponentPoints +=  self.board.countPoints(move)
             print('ja:', self.myPoints, ' komp:', self.opponentPoints)
             self.update()
         self.app.config(cursor="")
+    def updatePoints(self, humanPoints, compPoints):
+        humanPoints.config(text=str(self.myPoints))
+        compPoints.config(text=str(self.opponentPoints))
 
     def update(self):
         gameSize = self.board.size
@@ -163,6 +175,8 @@ class GUI:
                     self.buttons[x][y].button['state'] = 'normal'
                 else:
                     self.buttons[x][y].button['state'] = 'disabled'
+
+        self.updatePoints(self.humanScore, self.computerScore)
             # winning = self.board.won()
             # if winning:
             #     for x, y in winning:
