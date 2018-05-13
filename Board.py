@@ -1,6 +1,7 @@
 import sys
-import numpy as np
+import random
 import math
+import copy
 
 if sys.version_info >= (3, 0):
   from tkinter import *
@@ -8,14 +9,19 @@ else:
   from Tkinter import *
 from copy import deepcopy
 from GUI import *
+
+RANDOM = 'RANDOM'
+IN_ORDER = 'IN_ORDER'
+
 class Board:
   
-  def __init__(self,other=None, size=4, depth=3):
+  def __init__(self,other=None, size=4, depth=3, heuristic = IN_ORDER):
     self.player = 1
     self.opponent = -1
     self.empty = 0
     self.size = size
     self.depth = depth
+    self.heuristic = heuristic
     self.fieldsNr = self.size*self.size
     self.fields = np.zeros((self.size, self.size), dtype=int)
     self.emptyFields = []
@@ -26,6 +32,8 @@ class Board:
     if other:
       self.__dict__ = deepcopy(other.__dict__)
 
+  def setEmptyFields(self, value):
+      self.emptyFields = value
 
   def move(self,x,y, emptyFieldId):
     board = Board(self)
@@ -38,6 +46,8 @@ class Board:
     return board
   
   def __minimax(self, player, depth, move, allPoints=0):
+    if self.heuristic == RANDOM:
+        random.shuffle(self.emptyFields)
     if self.tied():
       return (allPoints, None)
 
@@ -69,6 +79,9 @@ class Board:
       return best
 
   def __minimaxwithpruning(self, player, depth, alfa, beta, move, allPoints=0):
+    if self.heuristic == RANDOM:
+        self.emptyFields = random.shuffle(self.emptyFields)
+
     if self.tied():
       return (allPoints, None)
 

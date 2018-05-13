@@ -6,11 +6,15 @@ import types
 MODE = 1
 BOARD_SIZE = 500
 GAME_SIZE = 4
-DEPTH = 4
+DEPTH = 3
+
 MINMAX = 'MINMAX'
 ALPHA_BETA_PRUNING = 'ALPHA_BETA_PRUNING'
 ALGORITHM = MINMAX
 
+RANDOM = 'RANDOM'
+IN_ORDER = 'IN_ORDER'
+HEURISTIC = IN_ORDER
 
 class Radiobar(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
@@ -38,7 +42,7 @@ class RadiobarAlgorithm(Frame):
         label = Label(self, text=labelText)
         label.pack(fill=fill, anchor=anchor, expand=YES)
         for pick in picks:
-            rad = Radiobutton(self, text=pick[0], value=pick[1], variable=self.var, command=self.changeMode)
+            rad = Radiobutton(self, text=pick, value=pick, variable=self.var, command=self.changeMode)
             rad.pack(anchor=anchor, expand=YES)
 
     def state(self):
@@ -47,6 +51,24 @@ class RadiobarAlgorithm(Frame):
     def changeMode(self):
         global ALGORITHM
         ALGORITHM = self.var.get()
+
+class RadiobarHeuristic(Frame):
+    def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
+        Frame.__init__(self, parent)
+        self.var = StringVar()
+        self.var.set(HEURISTIC)
+        label = Label(self, text=labelText)
+        label.pack(fill=fill, anchor=anchor, expand=YES)
+        for pick in picks:
+            rad = Radiobutton(self, text=pick, value=pick, variable=self.var, command=self.changeMode)
+            rad.pack(anchor=anchor, expand=YES)
+
+    def state(self):
+        return self.var.get()
+
+    def changeMode(self):
+        global HEURISTIC
+        HEURISTIC = self.var.get()
 
 class Scalebar(Frame):
     def __init__(self, parent=None):
@@ -84,7 +106,7 @@ class GUI:
         self.update()
 
     def initBoard(self):
-        self.board = Board(None, GAME_SIZE, DEPTH)
+        self.board = Board(None, GAME_SIZE, DEPTH, HEURISTIC)
         self.buttons = np.zeros((GAME_SIZE, GAME_SIZE), dtype=object)
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
@@ -101,28 +123,35 @@ class GUI:
         self.frameSettings.grid_columnconfigure(1, weight=1)
         handler = lambda: self.reset()
         button = Button(self.frameSettings, text='reset', command=handler)
-        button.grid(row=2, column=1, sticky="WE", padx=20, pady=20)
+        button.grid(row=2, column=2,columnspan=2, sticky="WE", padx=20, pady=20)
 
         radioOptions = [('Człowiek - Człowiek', 1), ('Człowiek  - Komputer', 2), ('Komputer - Komputer', 3)]
         radiobar = Radiobar(self.frameSettings, radioOptions, labelText='Tryb gry')
-        radiobar.grid(row=0, column=0, sticky="WE", padx=20, pady=20)
+        radiobar.grid(row=0, column=0, columnspan=2, sticky="WE", padx=20, pady=20)
         scalebar = Scalebar(self.frameSettings)
         scalebar.setScaleValue(GAME_SIZE)
-        scalebar.grid(row=2, column=0, sticky="WE", padx=20, pady=20)
+        scalebar.grid(row=2, column=0, columnspan=2, sticky="WE", padx=20, pady=20)
 
-        radiobarAlgorithm = RadiobarAlgorithm(self.frameSettings, [(MINMAX, MINMAX), (ALPHA_BETA_PRUNING, ALPHA_BETA_PRUNING)], labelText='Algorytm')
-        radiobarAlgorithm.grid(row=0, column=1, sticky="WE", padx=20, pady=20)
+        radiobarAlgorithm = RadiobarAlgorithm(self.frameSettings, [MINMAX, ALPHA_BETA_PRUNING],
+                                              labelText='Algorytm')
+        radiobarAlgorithm.grid(row=0, column=2, columnspan=2, sticky="WE", padx=20, pady=20)
+
+        radiobarHeuristic = RadiobarHeuristic(self.frameSettings,
+                                              [IN_ORDER, RANDOM],
+                                              labelText='Wybor węzła')
+        radiobarHeuristic.grid(row=3, column=0, columnspan=2, sticky="WE", padx=20, pady=20)
+
 
         resultsLabel = Label(self.frameSettings, text="Wynik gry dla graczy", font=("Helvetica", 16))
         humanScoreLabel = Label(self.frameSettings, text="Gracz 1: ")
         computerScoreLabel = Label(self.frameSettings, text="Gracz 2: ")
         self.humanScore = Label(self.frameSettings, text="0")
         self.computerScore = Label(self.frameSettings, text="0")
-        resultsLabel.grid(row=3, columnspan=2, padx=20, pady=20)
-        humanScoreLabel.grid(row=4, column=0, padx=20, pady=20)
-        computerScoreLabel.grid(row=4, column=1, padx=20, pady=20)
-        self.humanScore.grid(row=5, column=0, padx=20, pady=20)
-        self.computerScore.grid(row=5, column=1, padx=20, pady=20)
+        resultsLabel.grid(row=4, columnspan=4, padx=20, pady=20)
+        humanScoreLabel.grid(row=5, column=0, padx=20, pady=20)
+        computerScoreLabel.grid(row=5, column=2, padx=20, pady=20)
+        self.humanScore.grid(row=5, column=1, padx=20, pady=20)
+        self.computerScore.grid(row=5, column=3, padx=20, pady=20)
 
     def initGameWithMode(self, mode=MODE, algorithm=MINMAX):
         gameSize = self.board.size
@@ -152,7 +181,7 @@ class GUI:
     def moveHumanHuman(self, x, y, player):
         self.app.config(cursor="watch")
         self.app.update()
-        self.board = self.board.move(x, y)
+        self.board = self.board.move(x, y, None)
         if player:
             self.myPoints += self.board.countPoints((x, y))
         else:
