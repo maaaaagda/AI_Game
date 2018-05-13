@@ -10,119 +10,119 @@ from copy import deepcopy
 from GUI import *
 class Board:
   
-  def __init__(self,other=None):
+  def __init__(self,other=None, size=4, depth=3):
     self.player = 1
     self.opponent = -1
     self.empty = 0
-    self.size = 3
-    self.depth = 4
+    self.size = size
+    self.depth = depth
     self.fieldsNr = self.size*self.size
     self.fields = np.zeros((self.size, self.size), dtype=int)
+    self.emptyFields = []
+    for x in range (self.size):
+        for y in range (self.size):
+            self.emptyFields.append((x, y))
+
     if other:
       self.__dict__ = deepcopy(other.__dict__)
 
-  def move(self,x,y):
+
+  def move(self,x,y, emptyFieldId):
     board = Board(self)
     board.fields[x][y] = board.player
+    if emptyFieldId == None:
+        board.emptyFields.remove((x, y))
+    else:
+        del board.emptyFields[emptyFieldId]
     (board.player,board.opponent) = (board.opponent,board.player)
     return board
   
-  def __minimax(self, player, depth):
-    gameSize=self.size
-    if self.won():
-      if player:
-        return (-1,None)
+  def __minimax(self, player, depth, move):
+    if move:
+        points = self.countPoints(move)
+    else:
+        points = 0
 
-      else:
-        return (+1,None)
+    if self.tied():
+      return (0,None)
+
     elif depth == 0:
         if player:
-            return (0, self.findEmpty())
+            return (+points, self.findEmpty())
         else:
-            return (0, self.findEmpty())
-    elif self.tied():
-      return (0,None)
+            return (-points, self.findEmpty())
+
     elif player:        # kiedy ja
       best = (-math.inf, None)
-      if (depth != 0):
-          for x in range(gameSize):
-              for y in range(gameSize):
-                if self.fields[x][y]==self.empty:
-                   value = self.move(x,y).__minimax(not player, depth - 1)[0]
-                   if value>best[0]:
-                     best = (value,(x,y))
+      for i in range(len(self.emptyFields)):
+          chosen = self.emptyFields[i]
+          (x, y) = chosen
+          value = points + self.move(x, y, i).__minimax(not player, depth - 1, (x, y))[0]
+          if value > best[0]:
+              best = (value, (x, y))
 
       return best
     else:           # kiedy przeciwnik
       best = (+math.inf, None)
-      if (depth != 0):
-          for x in range(gameSize):
-              for y in range(gameSize):
-                if self.fields[x][y]==self.empty:
-                  value = self.move(x,y).__minimax(not player, depth - 1)[0]
-                  if value<best[0]:
-                      best = (value,(x,y))
-
+      for i in range(len(self.emptyFields)):
+          chosen = self.emptyFields[i]
+          (x, y) = chosen
+          value = points + self.move(x,y, i).__minimax(not player, depth - 1,(x, y))[0]
+          if value<best[0]:
+              best = (value,(x,y))
       return best
 
   def __minimaxwithpruning(self, player, depth, alfa, beta, move):
-    gameSize=self.size
-    if move != None:
-      points = self.countPoints(move)
-      if player:
-        return (-points, None)
-      else:
-        return (+points, None)
+    if move:
+        points = self.countPoints(move)
+    else:
+        points = 0
+
+    if self.tied():
+      return (0, None)
+
     elif depth == 0:
         if player:
-            return (0, self.findEmpty())
+            return (+points, self.findEmpty())
         else:
-            return (0, self.findEmpty())
-    elif self.tied():
-      return (0,None)
+            return (-points, self.findEmpty())
+
     elif player:        # kiedy ja
       best = (-math.inf, None)
-      if (depth != 0):
-          for x in range(gameSize):
-              for y in range(gameSize):
-                if self.fields[x][y]==self.empty:
-                   value = self.move(x,y).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
-                   if value>best[0]:
-                     best = (value,(x,y))
-                   if value > alfa:
-                       alfa = value
-                   if beta <= alfa:
-                       break
+      for i in range(len(self.emptyFields)):
+          chosen = self.emptyFields[i]
+          (x, y) = chosen
+          value = points + self.move(x, y, i).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
+          if value > best[0]:
+              best = (value, (x, y))
+          if value > alfa:
+              alfa = value
+          if beta <= alfa:
+              break
       return best
     else:           # kiedy przeciwnik
       best = (+math.inf, None)
-      if (depth != 0):
-          for x in range(gameSize):
-              for y in range(gameSize):
-                if self.fields[x][y]==self.empty:
-                  value = self.move(x,y).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
-                  if value<best[0]:
-                      best = (value,(x,y))
-                  if value < beta:
-                      beta = value
-                  if beta <= alfa:
-                      break
+      for i in range(len(self.emptyFields)):
+          chosen = self.emptyFields[i]
+          (x, y) = chosen
+          value = points + self.move(x,y, i).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
+          if value<best[0]:
+              best = (value,(x,y))
+          if value < beta:
+              beta = value
+          if beta <= alfa:
+              break
 
       return best
 
   def best(self, depth):
-    return self.__minimax(True, depth)[1]
+    return self.__minimax(True, depth, None)[1]
 
   def bestwithpruning(self, depth):
     return self.__minimaxwithpruning(True, depth, -math.inf, +math.inf, None)[1]
 
   def tied(self):
-      gameSize = self.size
-      for x in range(gameSize):
-          for y in range(gameSize):
-            if self.fields[x][y]==self.empty:
-                return False
-      return True
+      return len(self.emptyFields) == 0
 
   def findEmpty(self):
       gameSize = self.size

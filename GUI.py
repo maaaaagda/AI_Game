@@ -6,6 +6,11 @@ import types
 MODE = 1
 BOARD_SIZE = 500
 GAME_SIZE = 4
+DEPTH = 6
+MINMAX = 'MINMAX'
+ALPHA_BETA_PRUNING = 'ALPHA_BETA_PRUNING'
+ALGORITHM = MINMAX
+
 
 class Radiobar(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
@@ -24,6 +29,24 @@ class Radiobar(Frame):
     def changeMode(self):
         global MODE
         MODE = self.var.get()
+
+class RadiobarAlgorithm(Frame):
+    def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
+        Frame.__init__(self, parent)
+        self.var = StringVar()
+        self.var.set(ALGORITHM)
+        label = Label(self, text=labelText)
+        label.pack(fill=fill, anchor=anchor, expand=YES)
+        for pick in picks:
+            rad = Radiobutton(self, text=pick[0], value=pick[1], variable=self.var, command=self.changeMode)
+            rad.pack(anchor=anchor, expand=YES)
+
+    def state(self):
+        return self.var.get()
+
+    def changeMode(self):
+        global ALGORITHM
+        ALGORITHM = self.var.get()
 
 class Scalebar(Frame):
     def __init__(self, parent=None):
@@ -54,17 +77,14 @@ class GUI:
         self.app.title('Stratego')
         self.app.resizable(width=False, height=False)
         self.app.geometry('1000x500')
-        self.board = Board()
         self.myPoints = 0
         self.opponentPoints = 0
-        self.changeGameSize()
+        self.initBoard()
         self.initGameWithMode(MODE)
         self.update()
 
-    def changeGameSize(self):
-        self.board.size = GAME_SIZE
-        self.board.fieldsNr = self.board.size * self.board.size
-        self.board.fields = np.zeros((self.board.size, self.board.size), dtype=int)
+    def initBoard(self):
+        self.board = Board(None, GAME_SIZE, DEPTH)
         self.buttons = np.zeros((GAME_SIZE, GAME_SIZE), dtype=object)
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
@@ -81,18 +101,21 @@ class GUI:
         self.frameSettings.grid_columnconfigure(1, weight=1)
         handler = lambda: self.reset()
         button = Button(self.frameSettings, text='reset', command=handler)
-        button.grid(row=0, column=1, sticky="WE", padx=20, pady=20)
+        button.grid(row=2, column=1, sticky="WE", padx=20, pady=20)
 
         radioOptions = [('Człowiek - Człowiek', 1), ('Człowiek  - Komputer', 2), ('Komputer - Komputer', 3)]
         radiobar = Radiobar(self.frameSettings, radioOptions, labelText='Tryb gry')
         radiobar.grid(row=0, column=0, sticky="WE", padx=20, pady=20)
         scalebar = Scalebar(self.frameSettings)
         scalebar.setScaleValue(GAME_SIZE)
-        scalebar.grid(row=2, columnspan=2, sticky="WE", padx=20, pady=20)
+        scalebar.grid(row=2, column=0, sticky="WE", padx=20, pady=20)
+
+        radiobarAlgorithm = RadiobarAlgorithm(self.frameSettings, [(MINMAX, MINMAX), (ALPHA_BETA_PRUNING, ALPHA_BETA_PRUNING)], labelText='Algorytm')
+        radiobarAlgorithm.grid(row=0, column=1, sticky="WE", padx=20, pady=20)
 
         resultsLabel = Label(self.frameSettings, text="Wynik gry dla graczy", font=("Helvetica", 16))
-        humanScoreLabel = Label(self.frameSettings, text="Człowiek: ")
-        computerScoreLabel = Label(self.frameSettings, text="Komputer: ")
+        humanScoreLabel = Label(self.frameSettings, text="Gracz 1: ")
+        computerScoreLabel = Label(self.frameSettings, text="Gracz 2: ")
         self.humanScore = Label(self.frameSettings, text="0")
         self.computerScore = Label(self.frameSettings, text="0")
         resultsLabel.grid(row=3, columnspan=2, padx=20, pady=20)
@@ -101,63 +124,77 @@ class GUI:
         self.humanScore.grid(row=5, column=0, padx=20, pady=20)
         self.computerScore.grid(row=5, column=1, padx=20, pady=20)
 
-    def initGameWithMode(self, mode=MODE):
+    def initGameWithMode(self, mode=MODE, algorithm=MINMAX):
         gameSize = self.board.size
+        modeHandler = None
         for x in range (gameSize):
             for y in range (gameSize):
                 if mode == 1:
-                    modeHandler = lambda x=x, y=y: self.moveHumanHuman(x, y)
+                    modeHandler = lambda x=x, y=y: self.moveHumanHuman(x, y, True)
                 elif mode == 2:
-                    modeHandler = lambda x=x, y=y: self.moveHumanComp(x, y)
-                else:
-                    modeHandler = lambda x=x, y=y: self.moveCompComp(self.board.fieldsNr)
+                    modeHandler = lambda x=x, y=y: self.moveHumanComp(x, y, algorithm)
+
                 handler = modeHandler
                 buttonSize =  int(BOARD_SIZE/self.board.size)
                 f = ButtonField(self.frameBoard, buttonSize, buttonSize, handler)
                 f.grid(row=x, column=y)
                 self.buttons[x][y] = f
         if mode == 3:
-            self.moveCompComp(self.board.fieldsNr)
+            self.moveCompComp(self.board.fieldsNr, True, algorithm)
 
     def reset(self):
-        self.board = Board()
-        self.changeGameSize()
-        self.initGameWithMode(MODE)
+        self.initBoard()
         self.myPoints = 0
         self.opponentPoints = 0
+        self.initGameWithMode(MODE, ALGORITHM)
         self.update()
 
-    def moveHumanHuman(self, x, y):
+    def moveHumanHuman(self, x, y, player):
         self.app.config(cursor="watch")
         self.app.update()
         self.board = self.board.move(x, y)
+        if player:
+            self.myPoints += self.board.countPoints((x, y))
+        else:
+            self.opponentPoints += self.board.countPoints((x, y))
+
         self.update()
         self.app.config(cursor="")
 
-    def moveCompComp(self, fieldsNr):
-        move = self.board.best(self.board.depth)
+    def moveCompComp(self, fieldsNr, player, algorithm):
+        if(algorithm == MINMAX):
+            move = self.board.best(self.board.depth)
+        else:
+            move = self.board.bestwithpruning(self.board.depth)
+
         if move:
-            self.board = self.board.move(*move)
-            self.update()
-        self.app.config(cursor="")
+            self.app.update()
+            self.board = self.board.move(*move, None)
+            if player:
+                self.myPoints += self.board.countPoints(move)
+            else:
+                self.opponentPoints += self.board.countPoints(move)
+
+        self.update()
         if fieldsNr > 0:
-            self.moveCompComp(fieldsNr - 1)
+            self.moveCompComp(fieldsNr - 1, not player, algorithm)
 
-    def moveHumanComp(self, x, y):
+    def moveHumanComp(self, x, y, algorithm):
         self.app.config(cursor="watch")
         self.app.update()
-        self.board = self.board.move(x, y)
+        self.board = self.board.move(x, y, None)
         self.myPoints += self.board.countPoints((x, y))
-        print('ja:', self.myPoints, ' komp:', self.opponentPoints)
         self.update()
-        move = self.board.bestwithpruning(self.board.depth)
-        #move = self.board.best(self.board.depth)
+        if (algorithm == MINMAX):
+            move = self.board.best(self.board.depth)
+        else:
+            move = self.board.bestwithpruning(self.board.depth)
         if move:
-            self.board = self.board.move(*move)
+            self.board = self.board.move(*move, None)
             self.opponentPoints +=  self.board.countPoints(move)
-            print('ja:', self.myPoints, ' komp:', self.opponentPoints)
             self.update()
         self.app.config(cursor="")
+
     def updatePoints(self, humanPoints, compPoints):
         humanPoints.config(text=str(self.myPoints))
         compPoints.config(text=str(self.opponentPoints))
