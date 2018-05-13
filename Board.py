@@ -37,27 +37,21 @@ class Board:
     (board.player,board.opponent) = (board.opponent,board.player)
     return board
   
-  def __minimax(self, player, depth, move):
-    if move:
-        points = self.countPoints(move)
-    else:
-        points = 0
-
+  def __minimax(self, player, depth, move, allPoints=0):
     if self.tied():
-      return (0,None)
+      return (allPoints, None)
 
     elif depth == 0:
-        if player:
-            return (+points, self.findEmpty())
-        else:
-            return (-points, self.findEmpty())
+        return (allPoints, self.findEmpty())
 
     elif player:        # kiedy ja
       best = (-math.inf, None)
       for i in range(len(self.emptyFields)):
           chosen = self.emptyFields[i]
           (x, y) = chosen
-          value = points + self.move(x, y, i).__minimax(not player, depth - 1, (x, y))[0]
+          newBoard = self.move(x, y, i)
+          newPoints = newBoard.countPoints(chosen)
+          value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints + newPoints)[0]
           if value > best[0]:
               best = (value, (x, y))
 
@@ -67,32 +61,28 @@ class Board:
       for i in range(len(self.emptyFields)):
           chosen = self.emptyFields[i]
           (x, y) = chosen
-          value = points + self.move(x,y, i).__minimax(not player, depth - 1,(x, y))[0]
+          newBoard = self.move(x, y, i)
+          newPoints = newBoard.countPoints(chosen)
+          value = newBoard.__minimax(not player, depth - 1,(x, y), allPoints - newPoints)[0]
           if value<best[0]:
               best = (value,(x,y))
       return best
 
-  def __minimaxwithpruning(self, player, depth, alfa, beta, move):
-    if move:
-        points = self.countPoints(move)
-    else:
-        points = 0
-
+  def __minimaxwithpruning(self, player, depth, alfa, beta, move, allPoints=0):
     if self.tied():
-      return (0, None)
+      return (allPoints, None)
 
     elif depth == 0:
-        if player:
-            return (+points, self.findEmpty())
-        else:
-            return (-points, self.findEmpty())
+        return (allPoints, self.findEmpty())
 
     elif player:        # kiedy ja
       best = (-math.inf, None)
       for i in range(len(self.emptyFields)):
           chosen = self.emptyFields[i]
           (x, y) = chosen
-          value = points + self.move(x, y, i).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
+          newBoard = self.move(x, y, i)
+          newPoints = newBoard.countPoints(chosen)
+          value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints + newPoints)[0]
           if value > best[0]:
               best = (value, (x, y))
           if value > alfa:
@@ -101,19 +91,21 @@ class Board:
               break
       return best
     else:           # kiedy przeciwnik
-      best = (+math.inf, None)
-      for i in range(len(self.emptyFields)):
-          chosen = self.emptyFields[i]
-          (x, y) = chosen
-          value = points + self.move(x,y, i).__minimaxwithpruning(not player, depth - 1, alfa, beta, (x, y))[0]
-          if value<best[0]:
-              best = (value,(x,y))
-          if value < beta:
-              beta = value
-          if beta <= alfa:
-              break
+        best = (+math.inf, None)
+        for i in range(len(self.emptyFields)):
+            chosen = self.emptyFields[i]
+            (x, y) = chosen
+            newBoard = self.move(x, y, i)
+            newPoints = newBoard.countPoints(chosen)
+            value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints - newPoints)[0]
+            if value < best[0]:
+                best = (value, (x, y))
+            if value < beta:
+                beta = value
+            if beta <= alfa:
+                break
 
-      return best
+        return best
 
   def best(self, depth):
     return self.__minimax(True, depth, None)[1]
