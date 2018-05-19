@@ -6,7 +6,7 @@ import types
 MODE = 1
 BOARD_SIZE = 500
 GAME_SIZE = 4
-DEPTH = 3
+DEPTH = 4
 
 MINMAX = 'MINMAX'
 ALPHA_BETA_PRUNING = 'ALPHA_BETA_PRUNING'
@@ -14,7 +14,12 @@ ALGORITHM = MINMAX
 
 RANDOM = 'RANDOM'
 IN_ORDER = 'IN_ORDER'
-HEURISTIC = IN_ORDER
+NODE_SELECTION_HEURISTIC = IN_ORDER
+
+POINTS = 'POINTS'
+EMPTIES = 'EMPTIES'
+CLOSINGS = 'CLOSINGS'
+GAME_STATE_HEURISTIC = 'POINTS'
 
 class Radiobar(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
@@ -56,7 +61,7 @@ class RadiobarHeuristic(Frame):
     def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
         Frame.__init__(self, parent)
         self.var = StringVar()
-        self.var.set(HEURISTIC)
+        self.var.set(NODE_SELECTION_HEURISTIC)
         label = Label(self, text=labelText)
         label.pack(fill=fill, anchor=anchor, expand=YES)
         for pick in picks:
@@ -67,8 +72,26 @@ class RadiobarHeuristic(Frame):
         return self.var.get()
 
     def changeMode(self):
-        global HEURISTIC
-        HEURISTIC = self.var.get()
+        global NODE_SELECTION_HEURISTIC
+        NODE_SELECTION_HEURISTIC = self.var.get()
+
+class RadiobarGameState(Frame):
+    def __init__(self, parent=None, picks=[], fill=X, labelText='', anchor=W):
+        Frame.__init__(self, parent)
+        self.var = StringVar()
+        self.var.set(GAME_STATE_HEURISTIC)
+        label = Label(self, text=labelText)
+        label.pack(fill=fill, anchor=anchor, expand=YES)
+        for pick in picks:
+            rad = Radiobutton(self, text=pick, value=pick, variable=self.var, command=self.changeMode)
+            rad.pack(anchor=anchor, expand=YES)
+
+    def state(self):
+        return self.var.get()
+
+    def changeMode(self):
+        global GAME_STATE_HEURISTIC
+        GAME_STATE_HEURISTIC = self.var.get()
 
 class Scalebar(Frame):
     def __init__(self, parent=None):
@@ -106,7 +129,7 @@ class GUI:
         self.update()
 
     def initBoard(self):
-        self.board = Board(None, GAME_SIZE, DEPTH, HEURISTIC)
+        self.board = Board(None, GAME_SIZE, DEPTH, NODE_SELECTION_HEURISTIC, GAME_STATE_HEURISTIC)
         self.buttons = np.zeros((GAME_SIZE, GAME_SIZE), dtype=object)
         self.app.grid_columnconfigure(0, weight=0)
         self.app.grid_columnconfigure(1, weight=0)
@@ -141,6 +164,10 @@ class GUI:
                                               labelText='Wybor węzła')
         radiobarHeuristic.grid(row=3, column=0, columnspan=2, sticky="WE", padx=20, pady=20)
 
+        radiobarGameState = RadiobarGameState(self.frameSettings,
+                                              [POINTS, CLOSINGS, EMPTIES],
+                                              labelText='Ocena stanu gry')
+        radiobarGameState.grid(row=3, column=2, columnspan=2, sticky="WE", padx=20, pady=20)
 
         resultsLabel = Label(self.frameSettings, text="Wynik gry dla graczy", font=("Helvetica", 16))
         humanScoreLabel = Label(self.frameSettings, text="Gracz 1: ")
@@ -243,16 +270,6 @@ class GUI:
                     self.buttons[x][y].button['state'] = 'disabled'
 
         self.updatePoints(self.humanScore, self.computerScore)
-            # winning = self.board.won()
-            # if winning:
-            #     for x, y in winning:
-            #         self.buttons[x][y].button.configure(bg='purple')
-            #     for x in range(gameSize):
-            #         for y in range(gameSize):
-            #             self.buttons[x][y].button['state'] = 'disabled'
-            # for x in range(gameSize):
-            #     for y in range(gameSize):
-            #         self.buttons[x][y].button.update()
 
     def mainloop(self):
         self.app.mainloop()

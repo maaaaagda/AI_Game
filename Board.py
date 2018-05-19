@@ -13,15 +13,19 @@ from GUI import *
 RANDOM = 'RANDOM'
 IN_ORDER = 'IN_ORDER'
 
+POINTS = 'POINTS'
+CLOSINGS = 'CLOSINGS'
+
 class Board:
   
-  def __init__(self,other=None, size=4, depth=3, heuristic = IN_ORDER):
+  def __init__(self, other=None, size=4, depth=3, nodeSelection = IN_ORDER, gameState = POINTS):
     self.player = 1
     self.opponent = -1
     self.empty = 0
     self.size = size
     self.depth = depth
-    self.heuristic = heuristic
+    self.node_selection_heuristic = nodeSelection
+    self.game_state_heuristic = gameState
     self.fieldsNr = self.size*self.size
     self.fields = np.zeros((self.size, self.size), dtype=int)
     self.emptyFields = []
@@ -30,7 +34,7 @@ class Board:
             self.emptyFields.append((x, y))
 
     if other:
-      self.__dict__ = deepcopy(other.__dict__)
+      self.__dict__ = copy.deepcopy(other.__dict__)
 
   def setEmptyFields(self, value):
       self.emptyFields = value
@@ -46,7 +50,7 @@ class Board:
     return board
   
   def __minimax(self, player, depth, move, allPoints=0):
-    if self.heuristic == RANDOM:
+    if self.node_selection_heuristic == RANDOM:
         random.shuffle(self.emptyFields)
     if self.tied():
       return (allPoints, None)
@@ -60,7 +64,12 @@ class Board:
           chosen = self.emptyFields[i]
           (x, y) = chosen
           newBoard = self.move(x, y, i)
-          newPoints = newBoard.countPoints(chosen)
+          if(self.game_state_heuristic == POINTS):
+              newPoints = newBoard.countPoints(chosen)
+          elif (self.game_state_heuristic ==  CLOSINGS):
+              newPoints = newBoard.countClosings(chosen)
+          else:
+              newPoints = newBoard.countEmpties(chosen)
           value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints + newPoints)[0]
           if value > best[0]:
               best = (value, (x, y))
@@ -72,14 +81,19 @@ class Board:
           chosen = self.emptyFields[i]
           (x, y) = chosen
           newBoard = self.move(x, y, i)
-          newPoints = newBoard.countPoints(chosen)
+          if (self.game_state_heuristic == POINTS):
+              newPoints = newBoard.countPoints(chosen)
+          elif (self.game_state_heuristic == CLOSINGS):
+              newPoints = newBoard.countClosings(chosen)
+          else:
+              newPoints = newBoard.countEmpties(chosen)
           value = newBoard.__minimax(not player, depth - 1,(x, y), allPoints - newPoints)[0]
           if value<best[0]:
               best = (value,(x,y))
       return best
 
   def __minimaxwithpruning(self, player, depth, alfa, beta, move, allPoints=0):
-    if self.heuristic == RANDOM:
+    if self.node_selection_heuristic == RANDOM:
         self.emptyFields = random.shuffle(self.emptyFields)
 
     if self.tied():
@@ -94,14 +108,21 @@ class Board:
           chosen = self.emptyFields[i]
           (x, y) = chosen
           newBoard = self.move(x, y, i)
-          newPoints = newBoard.countPoints(chosen)
+          if (self.game_state_heuristic == POINTS):
+              newPoints = newBoard.countPoints(chosen)
+          elif (self.game_state_heuristic == CLOSINGS):
+              newPoints = newBoard.countClosings(chosen)
+          else:
+              newPoints = newBoard.countEmpties(chosen)
           value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints + newPoints)[0]
           if value > best[0]:
               best = (value, (x, y))
+          if value >= beta:
+              print('here we cut')
+              break
           if value > alfa:
               alfa = value
-          if beta <= alfa:
-              break
+
       return best
     else:           # kiedy przeciwnik
         best = (+math.inf, None)
@@ -109,14 +130,21 @@ class Board:
             chosen = self.emptyFields[i]
             (x, y) = chosen
             newBoard = self.move(x, y, i)
-            newPoints = newBoard.countPoints(chosen)
+            if (self.game_state_heuristic == POINTS):
+                newPoints = newBoard.countPoints(chosen)
+            elif (self.game_state_heuristic == CLOSINGS):
+                newPoints = newBoard.countClosings(chosen)
+            else:
+                newPoints = newBoard.countEmpties(chosen)
             value = newBoard.__minimax(not player, depth - 1, (x, y), allPoints - newPoints)[0]
             if value < best[0]:
                 best = (value, (x, y))
+            if value <= alfa:
+                print('here we cut')
+                break
             if value < beta:
                 beta = value
-            if beta <= alfa:
-                break
+
 
         return best
 
@@ -181,11 +209,8 @@ class Board:
       x1 = x
       y1 = y
       corners =  x1 == 0 and y1 == 0 or x1 == gameSize-1 and y1 == gameSize-1 or x1 == 0 and y1 == gameSize -1 or x1 == gameSize -1 and y1 == 0
-      # print(self.fields)
-      # print(move)
       points += (0 if gameSize-np.count_nonzero(self.fields[x][:]) != 0 else gameSize)
       points += (0 if gameSize-np.count_nonzero(self.fields[:, y]) != 0 else gameSize)
-      # print(points)
       diagonalPoints = 0
       while x1 + 1 < gameSize and y1 + 1 < gameSize:
           if (self.fields[x1 + 1][y1 + 1] == 0):
@@ -196,7 +221,6 @@ class Board:
               x1 += 1
               y1 += 1
 
-      # print('++', diagonalPoints)
       if(diagonalPoints != 0 or x == gameSize-1 or y == gameSize -1):
           x1 = x
           y1 = y
@@ -209,9 +233,7 @@ class Board:
                   x1 -= 1
                   y1 -= 1
 
-      # print('--', diagonalPoints)
       points += diagonalPoints + 1 if diagonalPoints != 0 else 0
-      # print(points)
 
       x1 = x
       y1 = y
@@ -224,7 +246,7 @@ class Board:
               diagonalPoints += 1
               x1 += 1
               y1 -= 1
-      # print('+-', diagonalPoints)
+
       if (diagonalPoints != 0 or y == 0 or x == gameSize -1):
           x1 = x
           y1 = y
@@ -237,10 +259,117 @@ class Board:
                   x1 -= 1
                   y1 += 1
 
-      # print('-+', diagonalPoints)
+
       points += diagonalPoints + 1 if diagonalPoints != 0 else 0
-      # print(points)
       return points
+
+  def countClosings(self, move):
+      (x, y) = move
+      gameSize = self.size
+      points = 0
+
+      x1 = x
+      y1 = y
+
+      points += (0 if gameSize-np.count_nonzero(self.fields[x][:]) != 0 else 1)
+      points += (0 if gameSize-np.count_nonzero(self.fields[:, y]) != 0 else 1)
+      diagonalPoints = 0
+      while x1 + 1 < gameSize and y1 + 1 < gameSize:
+          if (self.fields[x1 + 1][y1 + 1] == 0):
+              diagonalPoints = 0
+              break
+          else:
+              diagonalPoints += 1
+              x1 += 1
+              y1 += 1
+
+      if(diagonalPoints != 0 or x == gameSize-1 or y == gameSize -1):
+          x1 = x
+          y1 = y
+          while x1 - 1 >= 0 and y1 - 1 >= 0:
+              if (self.fields[x1 - 1][y1 - 1] == 0):
+                  diagonalPoints = 0
+                  break
+              else:
+                  diagonalPoints += 1
+                  x1 -= 1
+                  y1 -= 1
+
+      points += 1 if diagonalPoints != 0 else 0
+
+      x1 = x
+      y1 = y
+      diagonalPoints = 0
+      while x1 + 1 < gameSize and y1 - 1 >= 0:
+          if (self.fields[x1 + 1][y1 - 1] == 0):
+              diagonalPoints = 0
+              break
+          else:
+              diagonalPoints += 1
+              x1 += 1
+              y1 -= 1
+
+      if (diagonalPoints != 0 or y == 0 or x == gameSize -1):
+          x1 = x
+          y1 = y
+          while x1 - 1 >= 0 and y1 + 1 < gameSize:
+              if (self.fields[x1 - 1][y1 + 1] == 0):
+                  diagonalPoints = 0
+                  break
+              else:
+                  diagonalPoints += 1
+                  x1 -= 1
+                  y1 += 1
+
+
+      points += 1 if diagonalPoints != 0 else 0
+      return points
+
+  def countEmpties(self, move):
+      (x, y) = move
+      gameSize = self.size
+      points = 0
+
+      x1 = x
+      y1 = y
+
+      points += gameSize-np.count_nonzero(self.fields[x][:])
+      points += gameSize-np.count_nonzero(self.fields[:, y])
+      diagonalPoints = 0
+      while x1 + 1 < gameSize and y1 + 1 < gameSize:
+          if (self.fields[x1 + 1][y1 + 1] == 0):
+              diagonalPoints += 1
+          x1 += 1
+          y1 += 1
+
+      x1 = x
+      y1 = y
+      while x1 - 1 >= 0 and y1 - 1 >= 0:
+          if (self.fields[x1 - 1][y1 - 1] == 0):
+              diagonalPoints += 1
+          x1 -= 1
+          y1 -= 1
+
+
+      x1 = x
+      y1 = y
+      while x1 + 1 < gameSize and y1 - 1 >= 0:
+          if (self.fields[x1 + 1][y1 - 1] == 0):
+              diagonalPoints += 1
+          x1 += 1
+          y1 -= 1
+
+      x1 = x
+      y1 = y
+      while x1 - 1 >= 0 and y1 + 1 < gameSize:
+          if (self.fields[x1 - 1][y1 + 1] == 0):
+              diagonalPoints += 1
+          x1 -= 1
+          y1 += 1
+
+
+      points += diagonalPoints
+      return 1 if points == 0 else 1/points
 
 if __name__ == '__main__':
   GUI().mainloop()
